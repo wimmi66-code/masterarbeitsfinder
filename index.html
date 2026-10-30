@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Masterarbeitsfinder</title>
+<meta name="description" content="Betrieblich unterstützte Masterarbeiten in Maschinenbau, Elektrotechnik, Fahrzeugtechnik und Raumplanung finden – Suchauftrag erstellen und im Claude-Chat mit Websuche ausführen.">
+<meta name="theme-color" content="#0E6A6F">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Masterarbeit">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500;62..125,700;62..125,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Technisches Datenblatt – Kopf mit Schriftfeld, links Auftragsformular, rechts der fertige Auftrag als Laufzettel */
+:root{
+  --bg:#F1F4F3; --paper:#FFFFFF; --ink:#16252B; --muted:#56676D; --line:#D3DCDA;
+  --accent:#0E6A6F; --accent-ink:#FFFFFF; --accent-soft:#DDEFEE;
+  --mark:#F2B53A; --mark-soft:#FCEBC4; --hl:#F2B53A; --ok:#1E7A4C; --warn:#A35B00;
+  --display:"Archivo",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:10px; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F171A; --paper:#172227; --ink:#E3EBEC; --muted:#93A5AA; --line:#2A3A40;
+  --accent:#5CC6C9; --accent-ink:#06282A; --accent-soft:#183A3D; --mark:#E8B040; --mark-soft:#3B3017; --hl:#5E4712; --ok:#5FCB92; --warn:#F0A64A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F171A; --paper:#172227; --ink:#E3EBEC; --muted:#93A5AA; --line:#2A3A40;
+  --accent:#5CC6C9; --accent-ink:#06282A; --accent-soft:#183A3D; --mark:#E8B040; --mark-soft:#3B3017; --hl:#5E4712; --ok:#5FCB92; --warn:#F0A64A; color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+[hidden]{display:none!important}
+img{max-width:100%}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:28px 60px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:22px}
+h1{font-family:var(--display);font-stretch:78%;font-weight:800;font-size:clamp(30px,5.4vw,48px);line-height:1.02;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 .hl{background:linear-gradient(transparent 60%,var(--hl) 60%);padding:0 .06em}
+.lede{margin:8px 0 0;color:var(--muted);max-width:64ch}
+.titleblock{font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1.5px solid var(--line);border-radius:6px;display:grid;grid-template-columns:auto auto;min-width:0}
+.titleblock span{padding:4px 9px;border-bottom:1px solid var(--line)}
+.titleblock span:nth-child(odd){border-right:1px solid var(--line);text-transform:uppercase;letter-spacing:.06em}
+.titleblock span:nth-last-child(-n+2){border-bottom:none}
+.offline{font-family:var(--mono);font-size:12px;color:var(--warn)}
+.installbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 16px;padding:10px 14px;border:1.5px dashed var(--line);border-radius:10px;background:var(--paper);font-size:14px}
+.installbar .x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+nav.tabs{display:flex;gap:4px;border-bottom:2px solid var(--ink);overflow-x:auto;scrollbar-width:none}
+nav.tabs button{font-family:var(--display);font-stretch:85%;font-weight:700;font-size:15px;background:transparent;color:var(--muted);border:2px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;padding:9px 16px;cursor:pointer;white-space:nowrap;margin-bottom:-2px}
+nav.tabs button[aria-selected="true"]{background:var(--paper);color:var(--ink);border-color:var(--ink);border-bottom:2px solid var(--paper)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.panel{background:var(--paper);border:2px solid var(--ink);border-top:none;border-radius:0 0 var(--r) var(--r);padding:24px}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}.panel{padding:18px}}
+fieldset{border:none;margin:0 0 20px;padding:0;min-width:0}
+legend,.lbl{font-family:var(--display);font-stretch:90%;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;padding:0;display:block}
+.hint{font-size:13px;color:var(--muted);margin:6px 0 0}
+.modules{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.mod{position:relative}
+.mod input{position:absolute;opacity:0;pointer-events:none}
+.mod label{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;height:100%;background:var(--paper)}
+.mod .key{font-family:var(--display);font-weight:800;font-size:18px;line-height:1;width:28px;height:28px;border-radius:6px;display:grid;place-items:center;background:var(--bg);flex:none}
+.mod .t{font-weight:600;font-size:14px;line-height:1.25}
+.mod .s{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.mod input:checked+label{border-color:var(--accent);background:var(--accent-soft)}
+.mod input:checked+label .key{background:var(--accent);color:var(--accent-ink)}
+.mod input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px}
+.row .full{grid-column:1/-1}
+@media (max-width:520px){.row{grid-template-columns:minmax(0,1fr)}}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+input[type=text],input[type=number],select,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:7px;padding:9px 11px}
+textarea{resize:vertical;min-height:72px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{background:var(--mark-soft);border-color:var(--mark);font-weight:600}
+.chip[aria-pressed="true"]::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.chip .tag{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.checks{display:grid;gap:6px}
+.checks label{display:flex;gap:9px;align-items:flex-start;font-size:14px;cursor:pointer}
+.checks input{margin-top:3px;accent-color:var(--accent)}
+.btn{font-family:var(--display);font-stretch:90%;font-weight:700;font-size:15px;border-radius:8px;padding:10px 16px;cursor:pointer;border:2px solid var(--ink);background:var(--paper);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px;line-height:1.1}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{font-size:13px;padding:6px 11px}
+.btn:hover{filter:brightness(1.06)}
+.slip{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);border:2px solid var(--ink);border-radius:var(--r);background:var(--bg);overflow:hidden;min-width:0}
+.slip-head{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1.5px dashed var(--line);background:var(--paper)}
+.slip-head h2{font-family:var(--display);font-stretch:85%;font-size:17px;margin:0}
+.meta{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.toggle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+pre.out{margin:0;padding:14px;font-family:var(--mono);font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:58vh;overflow:auto;color:var(--ink)}
+.slip-foot{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;border-top:1.5px dashed var(--line);background:var(--paper)}
+.toast{font-size:13px;font-weight:600;color:var(--ok);align-self:center}
+.note{border-left:4px solid var(--mark);background:var(--mark-soft);padding:10px 12px;border-radius:0 7px 7px 0;font-size:14px;margin:0 0 18px}
+.note.blue{border-color:var(--accent);background:var(--accent-soft)}
+.uni-info{font-size:13px;margin-top:8px;padding:8px 10px;border-radius:7px;background:var(--bg);border:1px dashed var(--line)}
+.fl{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:500;padding:1px 6px;border-radius:4px;margin-right:4px;border:1px solid var(--line)}
+.fl.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.steps{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:12px;counter-reset:s}
+.steps li{display:grid;grid-template-columns:36px minmax(0,1fr);gap:12px;align-items:start;counter-increment:s}
+.steps li::before{content:counter(s);font-family:var(--display);font-weight:800;font-size:18px;width:32px;height:32px;border:2px solid var(--ink);border-radius:50%;display:grid;place-items:center}
+.steps b{display:block}
+h3{font-family:var(--display);font-stretch:85%;font-size:20px;margin:0 0 10px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+@media (max-width:880px){.two{grid-template-columns:minmax(0,1fr)}}
+.card{border:1.5px solid var(--line);border-radius:var(--r);background:var(--paper);min-width:0;display:flex;flex-direction:column}
+.card .ch{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1.5px dashed var(--line);flex-wrap:wrap}
+.card .ch strong{font-family:var(--display);font-stretch:88%;font-size:16px}
+.card pre{margin:0;padding:14px;font-family:var(--body);font-size:14px;white-space:pre-wrap;word-break:break-word;flex:1}
+.tablewrap{overflow-x:auto;border:1.5px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--display);font-stretch:90%;font-size:12px;text-transform:uppercase;letter-spacing:.05em;background:var(--bg);position:sticky;top:0}
+td.c{text-align:center;font-family:var(--mono)}
+tr:last-child td{border-bottom:none}
+.status{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:0;padding:0;list-style:none}
+.status li{border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px}
+.pill{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:500;padding:2px 8px;border-radius:999px;margin-bottom:5px}
+.p-ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.p-mid{background:var(--accent-soft);color:var(--accent)}
+.p-warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.p-no{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.prose p,.prose li{max-width:72ch}
+.prose ul{padding-left:20px;margin:0 0 16px}
+.prose li{margin-bottom:6px}
+.sec{margin-bottom:28px}
+footer{margin-top:18px;font-size:12.5px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1><span class="hl">Masterarbeits</span>finder</h1>
+      <p class="lede">Betrieblich unterstützte Masterarbeiten in Maschinenbau, Elektrotechnik, Fahrzeugtechnik und Raumplanung finden. Hochschule wählen, Suchauftrag erstellen und im kostenlosen Claude-Chat mit Websuche ausführen.</p>
+    </div>
+    <div style="display:grid;gap:4px;justify-items:end">
+      <div class="titleblock" aria-label="Datenblatt">
+        <span>Stand</span><span id="stamp">–</span>
+        <span>Länder</span><span>NRW · RP · HE · SL · NI</span>
+        <span>Zeitraum</span><span>2026 – 2028</span>
+      </div>
+      <span class="offline" id="offline" hidden>Offline: Aufträge erstellen geht trotzdem</span>
+    </div>
+  </header>
+
+  <div class="installbar" id="installBar" hidden>
+    <span id="installText">Als App auf dem Startbildschirm ablegen. Dann öffnet sie sich ohne Browserleiste und funktioniert auch offline.</span>
+    <button class="btn small primary" id="installBtn" type="button" hidden>App installieren</button>
+    <button class="x" id="installClose" type="button" aria-label="Hinweis schließen">×</button>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Bereiche">
+    <button role="tab" id="t-auftrag" aria-controls="p-auftrag" aria-selected="true">1 · Suchauftrag</button>
+    <button role="tab" id="t-hs" aria-controls="p-hs" aria-selected="false">2 · Hochschulen</button>
+    <button role="tab" id="t-kontakt" aria-controls="p-kontakt" aria-selected="false">3 · Anschreiben</button>
+    <button role="tab" id="t-projekt" aria-controls="p-projekt" aria-selected="false">4 · Claude-Projekt</button>
+    <button role="tab" id="t-hinweise" aria-controls="p-hinweise" aria-selected="false">5 · Hinweise</button>
+  </nav>
+
+  <!-- TAB 1 -->
+  <section class="panel" id="p-auftrag" role="tabpanel" aria-labelledby="t-auftrag">
+    <div class="grid">
+      <form id="form" autocomplete="off">
+        <fieldset>
+          <legend>Recherchemodul</legend>
+          <div class="modules" id="modules"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend id="fach-legend">Fachrichtung</legend>
+          <div class="chips" id="faecher" aria-labelledby="fach-legend"></div>
+          <div class="row" style="margin-top:10px">
+            <div class="field full"><label for="vertiefung">Vertiefung / Schwerpunkt (optional)</label>
+              <input type="text" id="vertiefung" placeholder="z. B. Antriebstechnik, Leistungselektronik, Batteriesysteme, Mobilitätsplanung"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Deine Hochschule</legend>
+          <div class="row">
+            <div class="field"><label for="land">Bundesland</label>
+              <select id="land">
+                <option value="">alle fünf Länder</option>
+                <option value="NW">Nordrhein-Westfalen</option>
+                <option value="NI">Niedersachsen</option>
+                <option value="HE">Hessen</option>
+                <option value="RP">Rheinland-Pfalz</option>
+                <option value="SL">Saarland</option>
+              </select></div>
+            <div class="field"><label for="hs">Hochschule</label>
+              <select id="hs"></select></div>
+            <div class="field full" id="hsOtherWrap" hidden><label for="hsOther">Name und Ort der Hochschule</label>
+              <input type="text" id="hsOther" placeholder="z. B. Hochschule XY, Musterstadt"></div>
+          </div>
+          <div class="uni-info" id="uniInfo"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Suchgebiet</legend>
+          <div class="row">
+            <div class="field"><label for="gebiet">Umkreis um die Hochschule</label>
+              <select id="gebiet">
+                <option value="25 km">bis 25 km</option>
+                <option value="50 km" selected>bis 50 km</option>
+                <option value="100 km">bis 100 km</option>
+                <option value="ganzes Bundesland">ganzes Bundesland der Hochschule</option>
+                <option value="alle fünf Länder">alle fünf Länder (NRW, RP, HE, SL, NI)</option>
+              </select></div>
+            <div class="field"><label for="wunsch">Zusätzliche Wunschregion (optional)</label>
+              <input type="text" id="wunsch" placeholder="z. B. Raum Wolfsburg, Rhein-Main, Saarbrücken"></div>
+          </div>
+          <p class="hint">Beides wird kombiniert: Claude sucht im Umkreis der Hochschule und zusätzlich in der Wunschregion.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Zeitraum</legend>
+          <div class="chips" id="jahre"></div>
+          <div class="row" style="margin-top:10px">
+            <div class="field"><label for="start">Gewünschter Start (optional)</label>
+              <input type="text" id="start" placeholder="z. B. ab April 2027"></div>
+            <div class="field"><label for="anzahl">Gewünschte Trefferzahl</label>
+              <input type="number" id="anzahl" min="1" max="60" placeholder="Standard: 15"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Thema und Rahmen</legend>
+          <div class="row">
+            <div class="field full"><label for="thema">Themenwünsche / Schlagworte</label>
+              <input type="text" id="thema" placeholder="z. B. Wasserstoff, Digitaler Zwilling, Ladeinfrastruktur, Flächenmanagement"></div>
+            <div class="field"><label for="art">Art des Arbeitgebers</label>
+              <select id="art">
+                <option value="">egal</option>
+                <option>Mittelstand / KMU</option>
+                <option>Konzern</option>
+                <option>Öffentliche Hand / Kommune / Verband</option>
+                <option>Forschungseinrichtung mit Industriebezug</option>
+                <option>Planungs- und Ingenieurbüro</option>
+              </select></div>
+            <div class="field"><label for="sprache">Sprache der Arbeit</label>
+              <select id="sprache"><option value="">egal</option><option>Deutsch</option><option>Englisch</option></select></div>
+          </div>
+          <div class="checks" id="extras" style="margin-top:12px"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Ausgabe</legend>
+          <div class="row">
+            <div class="field"><label for="ausgabe">Form</label>
+              <select id="ausgabe">
+                <option>Ausführliche Tabelle im Chat</option>
+                <option>Kurze Übersicht im Chat</option>
+                <option>Tabelle im Chat und Excel-Datei</option>
+              </select></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Weitere Hinweise</legend>
+          <textarea id="frei" placeholder="z. B. kein Schichtbetrieb, nur Unternehmen mit Bahnanschluss, Firma XY ausschließen …"></textarea>
+          <p class="hint">Keine Matrikelnummer, Anschrift oder Noten eintragen. Für die Suche reichen Fach, Hochschule und Themen.</p>
+        </fieldset>
+      </form>
+
+      <aside class="slip" aria-label="Fertiger Suchauftrag">
+        <div class="slip-head">
+          <h2>Dein Suchauftrag</h2>
+          <label class="toggle"><input type="checkbox" id="projMode"> Kurzfassung für Claude-Projekt</label>
+        </div>
+        <pre class="out" id="out" tabindex="0"></pre>
+        <div class="slip-foot">
+          <button class="btn primary" id="copyBtn" type="button">Auftrag kopieren</button>
+          <a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Claude öffnen ↗</a>
+          <span class="toast" id="toast" aria-live="polite"></span>
+          <span class="meta" id="count" style="margin-left:auto;align-self:center"></span>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- TAB 2 -->
+  <section class="panel" id="p-hs" role="tabpanel" aria-labelledby="t-hs" hidden>
+    <h3>Hochschulen mit passenden Masterstudiengängen</h3>
+    <p class="note">Auswahl, Stand Oktober 2026, ohne Gewähr. Studienangebote ändern sich. Claude prüft vor jeder Suche, ob der Master an deiner Hochschule tatsächlich angeboten wird. Fehlt deine Hochschule, wähle im Suchauftrag „Andere Hochschule“.</p>
+    <div class="row" style="margin-bottom:12px">
+      <div class="field"><label for="fLand">Bundesland</label>
+        <select id="fLand"><option value="">alle</option><option value="NW">Nordrhein-Westfalen</option><option value="NI">Niedersachsen</option><option value="HE">Hessen</option><option value="RP">Rheinland-Pfalz</option><option value="SL">Saarland</option></select></div>
+      <div class="field"><label for="fFach">Fachrichtung</label>
+        <select id="fFach"><option value="">alle</option><option value="M">Maschinenbau</option><option value="E">Elektrotechnik</option><option value="F">Fahrzeugtechnik</option><option value="R">Raumplanung</option></select></div>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Hochschule</th><th>Ort</th><th>Land</th><th>Typ</th><th>MB</th><th>ET</th><th>FT</th><th>RP</th></tr></thead>
+      <tbody id="hsTable"></tbody>
+    </table></div>
+    <p class="hint" id="hsCount"></p>
+    <p class="hint">MB Maschinenbau · ET Elektrotechnik · FT Fahrzeugtechnik (inkl. Automotive, Kraftfahrzeugtechnik) · RP Raumplanung (inkl. Stadt- und Regionalplanung, Städtebau, Umwelt- und Regionalplanung).</p>
+  </section>
+
+  <!-- TAB 3 -->
+  <section class="panel" id="p-kontakt" role="tabpanel" aria-labelledby="t-kontakt" hidden>
+    <div class="grid">
+      <form id="kform" autocomplete="off">
+        <fieldset>
+          <legend>Angaben für die Vorlagen</legend>
+          <div class="row">
+            <div class="field"><label for="kName">Dein Name</label><input type="text" id="kName" placeholder="Vorname Nachname"></div>
+            <div class="field"><label for="kFirma">Unternehmen</label><input type="text" id="kFirma" placeholder="z. B. Muster Antriebstechnik GmbH"></div>
+            <div class="field"><label for="kStudi">Studiengang</label><input type="text" id="kStudi" placeholder="z. B. M.Sc. Maschinenbau"></div>
+            <div class="field"><label for="kHs">Hochschule</label><input type="text" id="kHs" placeholder="z. B. FH Dortmund"></div>
+            <div class="field full"><label for="kThema">Themenidee oder Interessengebiet</label><input type="text" id="kThema" placeholder="z. B. Effizienzsteigerung elektrischer Antriebe im Teillastbetrieb"></div>
+            <div class="field"><label for="kZeit">Zeitraum</label><input type="text" id="kZeit" placeholder="z. B. ab April 2027, 6 Monate"></div>
+            <div class="field"><label for="kKenn">Vorkenntnisse (kurz)</label><input type="text" id="kKenn" placeholder="z. B. MATLAB/Simulink, CAD, Praktikum in der Antriebsentwicklung"></div>
+            <div class="field"><label for="kBetr">Betreuung an der Hochschule</label>
+              <select id="kBetr"><option value="geklärt">bereits zugesagt</option><option value="offen">noch offen</option></select></div>
+            <div class="field"><label for="kProf">Name Professor/in (optional)</label><input type="text" id="kProf" placeholder="z. B. Prof. Dr. Muster"></div>
+          </div>
+        </fieldset>
+      </form>
+      <div style="display:grid;gap:16px;min-width:0">
+        <div class="card">
+          <div class="ch"><strong>Initiativanfrage an ein Unternehmen</strong><button class="btn small" type="button" data-copy="mailFirma">Kopieren</button></div>
+          <pre id="mailFirma"></pre>
+        </div>
+        <div class="card">
+          <div class="ch"><strong>Anfrage an Professor/in zur Betreuung</strong><button class="btn small" type="button" data-copy="mailProf">Kopieren</button></div>
+          <pre id="mailProf"></pre>
+        </div>
+        <span class="toast" id="toastK" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 4 -->
+  <section class="panel" id="p-projekt" role="tabpanel" aria-labelledby="t-projekt" hidden>
+    <div class="two">
+      <div>
+        <h3>Einmal einrichten, danach nur noch Kurzaufträge</h3>
+        <p class="note blue">Mit einem Claude-Projekt liegen alle Regeln dauerhaft in den Projektanweisungen. Danach genügt im Projekt-Chat die Kurzfassung aus Reiter 1. Ohne Projekt funktioniert der vollständige Auftrag in jedem Chat.</p>
+        <ol class="steps">
+          <li><div><b>claude.ai öffnen und anmelden</b>Ein kostenloses Konto reicht.</div></li>
+          <li><div><b>Neues Projekt anlegen</b>In der Seitenleiste „Projekte“ wählen, dann „Neues Projekt“. Name zum Beispiel: Masterarbeitsfinder.</div></li>
+          <li><div><b>Projektanweisungen einfügen</b>Im Projekt „Anweisungen festlegen“ öffnen und den Text rechts komplett einfügen.</div></li>
+          <li><div><b>Websuche einschalten</b>Im Chatfenster über das Werkzeug-Symbol die Websuche aktivieren.</div></li>
+          <li><div><b>Recherche starten</b>Im Projekt einen neuen Chat öffnen, in Reiter 1 „Kurzfassung für Claude-Projekt“ anhaken, Auftrag kopieren und einfügen.</div></li>
+        </ol>
+      </div>
+      <div class="card">
+        <div class="ch"><strong>Projektanweisungen (alle Module)</strong>
+          <span style="display:flex;gap:8px;align-items:center"><span class="meta" id="projCount"></span><button class="btn small primary" id="copyProj" type="button">Kopieren</button></span></div>
+        <pre class="out" id="projOut" tabindex="0" style="font-family:var(--mono);font-size:12px;max-height:70vh"></pre>
+        <div class="ch" style="border-bottom:none;border-top:1.5px dashed var(--line)"><span class="toast" id="toastProj" aria-live="polite"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 5 -->
+  <section class="panel prose" id="p-hinweise" role="tabpanel" aria-labelledby="t-hinweise" hidden>
+    <div class="sec">
+      <h3>So liest du die Ergebnisse</h3>
+      <ul class="status">
+        <li><span class="pill p-ok">ausgeschrieben</span><br>Konkrete Masterarbeit auf der Unternehmensseite, Bewerbung möglich.</li>
+        <li><span class="pill p-mid">Thesis-Programm</span><br>Das Unternehmen vergibt regelmäßig Abschlussarbeiten, aber gerade ohne konkrete Ausschreibung zu deinem Fach.</li>
+        <li><span class="pill p-warn">Initiativanfrage</span><br>Fachlich passender Betrieb ohne veröffentlichtes Angebot. Anfrage lohnt sich.</li>
+        <li><span class="pill p-no">nicht aktuell</span><br>Abgelaufen, besetzt oder nicht mehr erreichbar. Steht nicht in der Hauptliste.</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Passungs-Score (0–100)</h3>
+      <p>Fachliche Passung 30 · Region und Erreichbarkeit 20 · Zeitfenster und Aktualität 20 · Rahmenbedingungen (Vergütung, Betreuung, Hochschulkooperation) 15 · Kontaktqualität 15.</p>
+    </div>
+    <div class="sec">
+      <h3>Was du vor der Zusage klären solltest</h3>
+      <ul>
+        <li><b>Betreuung:</b> Eine Masterarbeit im Unternehmen braucht fast immer eine Betreuerin oder einen Betreuer an deiner Hochschule. Kläre das früh, am besten vor der Zusage im Betrieb.</li>
+        <li><b>Prüfungsordnung:</b> Sie regelt Bearbeitungszeit, Anmeldung und ob externe Arbeiten erlaubt sind. Der Prüfungsausschuss muss das Thema meist genehmigen.</li>
+        <li><b>Geheimhaltung:</b> Viele Unternehmen verlangen eine Geheimhaltungsvereinbarung oder einen Sperrvermerk. Stimme beides mit der Hochschule ab.</li>
+        <li><b>Vergütung und Vertrag:</b> Üblich ist ein Vertrag für die Zeit der Abschlussarbeit oder eine Werkstudententätigkeit. Lass dir Vergütung, Arbeitszeit und Home-Office-Anteil schriftlich geben.</li>
+        <li><b>Vorlauf:</b> Für 2027 und 2028 sind konkrete Ausschreibungen heute noch selten. Plane mit Thesis-Programmen und Initiativanfragen und wiederhole die Suche etwa 6–9 Monate vor deinem Start.</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Was die kostenlose Version kann und was nicht</h3>
+      <ul>
+        <li>Die Recherche läuft im Claude-Chat. Die Websuche muss eingeschaltet sein, sonst kann Claude keine aktuellen Angebote prüfen.</li>
+        <li>Der kostenlose Plan hat ein Nachrichtenlimit. Suche lieber eine Fachrichtung pro Chat.</li>
+        <li>Kann Claude keine Excel-Datei erzeugen, kommen die Tabellen als CSV-Text. Den kannst du in Excel über „Daten → Aus Text/CSV“ übernehmen.</li>
+        <li>Es gibt keine automatische Suche im Hintergrund. Für einen Vergleich mit einer früheren Suche lädst du die alte Excel-Datei im Chat hoch.</li>
+        <li>Angebote können sich schnell ändern. Öffne vor der Bewerbung immer die Originalanzeige.</li>
+      </ul>
+    </div>
+    <div class="sec">
+      <h3>Datenschutz</h3>
+      <p>Die App speichert nichts auf einem Server. Deine Eingaben bleiben nur auf deinem Gerät. Gib im Chat keine Matrikelnummer, Anschrift oder Zeugnisse ein.</p>
+    </div>
+  </section>
+
+  <footer>Masterarbeitsfinder · Aufbau nach dem Vorbild des Ausbildungs- und Praktikumsfinders.</footer>
+</div>
+
+<script>
+(function(){
+const today = new Date();
+const fmtDate = d => d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+const $ = id => document.getElementById(id);
+$('stamp').textContent = fmtDate(today);
+
+/* ---------- Hochschulen (Auswahl, Stand Oktober 2026) ---------- */
+const LAND = {NW:'Nordrhein-Westfalen',NI:'Niedersachsen',HE:'Hessen',RP:'Rheinland-Pfalz',SL:'Saarland'};
+const FACH = {M:'Maschinenbau',E:'Elektrotechnik',F:'Fahrzeugtechnik',R:'Raumplanung'};
+const HS = [
+ ['RWTH Aachen','Aachen','NW','Uni','MEFR'],
+ ['FH Aachen','Aachen','NW','HAW','MEF'],
+ ['TU Dortmund','Dortmund','NW','Uni','MER'],
+ ['Fachhochschule Dortmund','Dortmund','NW','HAW','MEFR'],
+ ['Ruhr-Universität Bochum','Bochum','NW','Uni','ME'],
+ ['Hochschule Bochum','Bochum','NW','HAW','MER'],
+ ['Universität Duisburg-Essen','Duisburg','NW','Uni','MEF'],
+ ['Bergische Universität Wuppertal','Wuppertal','NW','Uni','MEF'],
+ ['Universität Siegen','Siegen','NW','Uni','ME'],
+ ['Universität Paderborn','Paderborn','NW','Uni','ME'],
+ ['TH Köln','Köln','NW','HAW','MER'],
+ ['TH Ostwestfalen-Lippe','Lemgo / Detmold','NW','HAW','MER'],
+ ['Hochschule Bielefeld (HSBI)','Bielefeld','NW','HAW','ME'],
+ ['FH Münster','Steinfurt','NW','HAW','ME'],
+ ['Westfälische Hochschule','Gelsenkirchen / Bocholt','NW','HAW','ME'],
+ ['Hochschule Niederrhein','Krefeld','NW','HAW','ME'],
+ ['Hochschule Düsseldorf','Düsseldorf','NW','HAW','ME'],
+ ['Hochschule Hamm-Lippstadt','Hamm / Lippstadt','NW','HAW','ME'],
+ ['Hochschule Bonn-Rhein-Sieg','Sankt Augustin','NW','HAW','ME'],
+ ['Hochschule Ruhr West','Mülheim an der Ruhr','NW','HAW','ME'],
+ ['Hochschule Rhein-Waal','Kleve','NW','HAW','ME'],
+ ['Fachhochschule Südwestfalen','Iserlohn / Meschede / Soest','NW','HAW','ME'],
+ ['Universität Bonn','Bonn','NW','Uni','R'],
+ ['TU Braunschweig','Braunschweig','NI','Uni','MEF'],
+ ['Leibniz Universität Hannover','Hannover','NI','Uni','MER'],
+ ['TU Clausthal','Clausthal-Zellerfeld','NI','Uni','ME'],
+ ['Hochschule Hannover','Hannover','NI','HAW','MEF'],
+ ['Ostfalia Hochschule','Wolfenbüttel / Wolfsburg','NI','HAW','MEF'],
+ ['Hochschule Osnabrück','Osnabrück','NI','HAW','MEF'],
+ ['Jade Hochschule','Wilhelmshaven / Oldenburg','NI','HAW','ME'],
+ ['Hochschule Emden/Leer','Emden','NI','HAW','ME'],
+ ['HAWK Hildesheim/Holzminden/Göttingen','Göttingen','NI','HAW','ME'],
+ ['TU Darmstadt','Darmstadt','HE','Uni','ME'],
+ ['Hochschule Darmstadt','Darmstadt','HE','HAW','MEF'],
+ ['Frankfurt University of Applied Sciences','Frankfurt am Main','HE','HAW','MEFR'],
+ ['Hochschule RheinMain','Wiesbaden / Rüsselsheim','HE','HAW','MER'],
+ ['Universität Kassel','Kassel','HE','Uni','MER'],
+ ['TH Mittelhessen','Gießen / Friedberg','HE','HAW','ME'],
+ ['Hochschule Fulda','Fulda','HE','HAW','E'],
+ ['Justus-Liebig-Universität Gießen','Gießen','HE','Uni','R'],
+ ['RPTU Kaiserslautern-Landau','Kaiserslautern','RP','Uni','MEFR'],
+ ['Hochschule Kaiserslautern','Kaiserslautern','RP','HAW','ME'],
+ ['Hochschule Koblenz','Koblenz','RP','HAW','ME'],
+ ['Hochschule Trier','Trier','RP','HAW','ME'],
+ ['TH Bingen','Bingen','RP','HAW','ME'],
+ ['Universität des Saarlandes','Saarbrücken','SL','Uni','ME'],
+ ['htw saar','Saarbrücken','SL','HAW','MEF']
+].map(([n,o,l,t,f])=>({n,o,l,t,f}));
+
+/* ---------- Regelwerk ---------- */
+const BASE = `# Masterarbeitsfinder – Arbeitsanweisung
+
+## Rolle
+Du bist der Masterarbeitsfinder. Du unterstützt Studierende der Fachrichtungen Maschinenbau, Elektrotechnik, Fahrzeugtechnik und Raumplanung an Universitäten, Technischen Hochschulen und Hochschulen für angewandte Wissenschaften in Nordrhein-Westfalen, Rheinland-Pfalz, Hessen, dem Saarland und Niedersachsen. Du findest betrieblich unterstützte Masterarbeiten (Abschlussarbeit im oder mit einem Unternehmen, einer Kommune, einem Verband oder einem Planungsbüro) für einen Start in den Jahren 2026, 2027 oder 2028 und gleichst sie mit der Hochschule und den Wünschen der oder des Studierenden ab.
+
+## Verbindliche Regeln
+1. Nutze für jede Suche die Websuche. Verlass dich nicht auf Vorwissen. Ist die Websuche nicht verfügbar, sag das sofort und bitte darum, sie einzuschalten, statt Treffer aus dem Gedächtnis zu liefern.
+2. Prüfe zuerst kurz auf der Website der Hochschule, ob dort ein passender Masterstudiengang angeboten wird (Name des Studiengangs, Link). Gibt es ihn nicht, sag das und frage, ob trotzdem gesucht werden soll.
+3. Öffne die konkrete Ausschreibung bzw. die Karriere- oder Abschlussarbeitsseite des Unternehmens. Ein Suchtreffer-Ausschnitt reicht nicht als Bestätigung.
+4. Erfinde niemals Unternehmen, Themen, Ansprechpartner, E-Mail-Adressen, Telefonnummern, Vergütungen, Fristen, Anforderungen oder Entfernungen.
+5. Fehlende Angaben: „nicht angegeben“. Nur Online-Formular: „Bewerbungsportal“. Unklare Sachverhalte: „unklar“.
+6. Bei jedem Treffer: Quelle (konkrete Anzeige, nicht nur Startseite), Quellenart und Abrufdatum mit konkretem Datum (z. B. „30. Oktober 2026“).
+7. Dubletten zusammenführen (gleiches Unternehmen, Standort, Thema). Unternehmensseite als Hauptquelle, Börsen nur ergänzend.
+8. Keine Auffüllung mit unpassenden Treffern (z. B. Bachelorarbeiten, reine Praktika, Werkstudentenjobs ohne Abschlussarbeit, Jobs für Absolventen). Bei weniger Treffern die tatsächliche Anzahl nennen und kurz erläutern, was geprüft wurde.
+9. Vermutungen nie als Tatsache. Unsichere Treffer als „Prüfung erforderlich“ kennzeichnen.
+10. Nutzerangaben haben Vorrang. Den Suchradius nicht ohne Hinweis erweitern.
+
+## Zeitraum 2026 bis 2028
+Konkrete Ausschreibungen für Masterarbeiten erscheinen meist nur 1–6 Monate vor dem Start. Für 2027 und 2028 gibt es deshalb selten schon konkrete Anzeigen. Arbeite in drei Stufen und kennzeichne jeden Treffer:
+- ausgeschrieben: konkrete, aktuell offene Masterarbeit (Start 2026 oder 2027, „ab sofort“ oder „nach Absprache“)
+- Thesis-Programm: Unternehmen vergibt nachweislich regelmäßig Abschlussarbeiten in diesem Fach (Karriereseite, Studierendenprogramm, frühere Ausschreibungen der letzten 12 Monate) – geeignet für die Planung 2027/2028
+- Initiativanfrage: fachlich passender Betrieb mit F&E, Konstruktion, Entwicklung oder Planungsabteilung, aber ohne veröffentlichtes Angebot
+Nicht aktuell (abgelaufen, besetzt, nicht erreichbar, älter als 12 Monate ohne Hinweis auf Fortführung) gehört nicht in die Hauptliste.
+
+## Fachrichtungen und typische Arbeitgeber
+- Maschinenbau: Maschinen- und Anlagenbau, Antriebstechnik, Automatisierung, Produktionstechnik, Energie- und Verfahrenstechnik, Luft- und Raumfahrt, Medizintechnik, Zulieferindustrie
+- Elektrotechnik: Energieversorger und Netzbetreiber, Leistungselektronik, Halbleiter und Elektronikfertigung, Automatisierung, Mess- und Sensortechnik, Kommunikationstechnik, Elektromobilität und Ladeinfrastruktur
+- Fahrzeugtechnik: Fahrzeughersteller, Zulieferer, Nutzfahrzeuge, Schienenfahrzeuge, Landmaschinen, Prüf- und Entwicklungsdienstleister, Batterie- und Antriebssysteme
+- Raumplanung: Stadt- und Regionalplanungsbüros, Kommunen, Kreise, Regionalverbände und Bezirksregierungen, Verkehrsunternehmen und Verkehrsverbünde, Wohnungsunternehmen und Projektentwickler, Energie- und Infrastrukturunternehmen, Beratungen, Forschungseinrichtungen mit Praxispartnern
+Berücksichtige die angegebene Vertiefung und die Themenwünsche.
+
+## Quellen in dieser Reihenfolge
+1. Karriereseiten und Abschlussarbeitsbörsen der Unternehmen (Filter wie „Abschlussarbeit“, „Masterarbeit“, „Thesis“, „Studierende“)
+2. Career Service, Stellenbörsen und Abschlussarbeitsseiten der gewählten Hochschule sowie Institute und Lehrstühle mit Industrieprojekten („offene Abschlussarbeiten“, „in Kooperation mit“)
+3. Fachverbände und Netzwerke (z. B. VDI, VDE, regionale Cluster und Wirtschaftsförderungen; bei Raumplanung z. B. die Stellenbörse der SRL – Vereinigung für Stadt-, Regional- und Landesplanung)
+4. Jobbörsen (z. B. StepStone, Indeed, LinkedIn, Absolventa, jobvector, ingenieur.de) nur ergänzend; danach auf der Unternehmensseite bestätigen, sonst als „nur Börsenanzeige“ kennzeichnen
+Nicht ausreichend als einzige Quelle: Suchtreffer ohne geöffnete Seite, Aggregatoren ohne Originalanzeige, Social Media, Firmenverzeichnisse ohne Bezug zu Abschlussarbeiten.
+
+## Region und Erreichbarkeit
+Bezugspunkt ist der Standort der gewählten Hochschule. Prüfe den tatsächlichen Arbeitsort (bei Konzernen den konkreten Standort). Entfernungen nur nachvollziehbar angeben und die Methode nennen (Luftlinie oder ca. Straßenkilometer ab Hochschulstandort). Nenne, wenn erkennbar, Bahnanbindung und Home-Office-Anteil. Eine zusätzliche Wunschregion wird ergänzend durchsucht und im Ergebnis getrennt ausgewiesen.
+
+## Bewertung
+Passungs-Score 0–100 mit kurzer Begründung:
+- Fachliche Passung zu Fach, Vertiefung und Themen: 30
+- Region und Erreichbarkeit: 20
+- Zeitfenster und Aktualität: 20
+- Rahmenbedingungen (Vergütung, Betreuung im Unternehmen, Kooperation mit der Hochschule, Sprache): 15
+- Kontaktqualität (Ansprechperson, E-Mail, klarer Bewerbungsweg): 15
+Nur Anforderungen übernehmen, die in der Quelle stehen. Keine Aussagen über Chancen einzelner Personen.
+
+## Ablauf
+- Übernimm alle Angaben aus dem Auftrag und frage Bekanntes nicht erneut ab. Ist der Auftrag konkret genug, beginne sofort.
+- Fehlt Wesentliches, stelle eine kompakte Sammelfrage nach Fachrichtung, Hochschule und gewünschtem Zeitraum.
+- Bei mehreren Fachrichtungen arbeite eine nach der anderen ab, gib jeweils ein Zwischenergebnis aus und frage, ob du fortfahren sollst.
+
+## Ausgabe
+1. Kurze Zusammenfassung: Fachrichtung, Hochschule und geprüfter Studiengang, Suchgebiet, Zeitraum, Suchdatum, Anzahl geprüfter Quellen, Anzahl Treffer je Stufe, Annahmen.
+2. Tabelle „Ausgeschriebene Masterarbeiten“: Rang | Score | Unternehmen | Arbeitsort | Entfernung zur Hochschule | Thema / Titel | Fachrichtung | Start | Vergütung | Anforderungen | Ansprechperson | Kontakt | Bewerbungsweg | Quelle | Abrufdatum
+3. Tabelle „Thesis-Programme“ und Tabelle „Betriebe für Initiativanfragen“ (Unternehmen | Ort | Entfernung | Bereich / Abteilung | warum passend | Kontakt oder Karriereseite | Quelle).
+4. Falls angegeben: Treffer der Wunschregion getrennt.
+5. Kurze Einschätzung: Wo gibt es die meisten Angebote, welche Themen sind gefragt, welche Unternehmen zuerst anschreiben, lohnt ein größerer Radius.
+6. „Nächste Schritte“ (höchstens 5), darunter immer: Betreuung an der Hochschule klären und Prüfungsordnung zu externen Abschlussarbeiten prüfen.
+Hinweis am Ende: Angebote können sich schnell ändern – vor der Bewerbung die Originalanzeige erneut öffnen.
+
+## Excel
+Bei Excel-Wunsch oder mehr als 15 Treffern eine .xlsx-Datei (Dateiname: Masterarbeitsfinder_Fach_Hochschule_JJJJ-MM-TT.xlsx; Kopfzeile fixiert, Filter aktiv, klickbare Links, ein Datensatz pro Zeile, keine verbundenen Zellen, keine Fantasiedaten). Tabellenblätter:
+- Treffer: lfd. Nr. | Stufe | Score | Unternehmen | Straße | PLZ | Ort | Bundesland | Entfernung zur Hochschule | Fachrichtung | Thema / Titel | Start | Dauer | Vergütung | Sprache | Anforderungen | Ansprechperson | E-Mail | Telefon | Bewerbungslink | Quellenlink | Quellenart | Abrufdatum | Bemerkungen
+- Unternehmen: Unternehmen | Ort | Branche | Karriereseite | Abschlussarbeiten regelmäßig (ja/nein/unklar) | Fachbereiche | Kontakt Hochschulmarketing | Bemerkungen
+- Bewerbungsstatus: Unternehmen | Thema | angeschrieben am | Antwort | Gespräch am | Zusage | Betreuer/in Hochschule | Anmeldung Prüfungsamt | Wiedervorlage | Notizen (Werte: offen, angeschrieben, Rückmeldung ausstehend, Gespräch vereinbart, Zusage, Absage, abgeschlossen)
+- Rechercheprotokoll: Datum | Fachrichtung | Hochschule | Studiengang geprüft | Suchgebiet | Zeitraum | geprüfte Quellen | Treffer je Stufe | ausgeschlossene Treffer | Gründe | Annahmen
+Kannst du keine Datei erzeugen, gib jedes Tabellenblatt als eigenen CSV-Codeblock aus (Trennzeichen Semikolon).
+
+## Grenzen
+Du hast kein Gedächtnis zwischen Chats und überwachst nichts im Hintergrund. Für einen Vergleich mit einer früheren Suche muss die alte Datei hochgeladen werden. Frage nicht nach Matrikelnummer, Anschrift, Noten oder Zeugnissen.
+
+## Stil
+Freundlich, klar und direkt, Anrede „du“. Keine Floskeln. Tabellen vor Fließtext.`;
+
+const MODULES = {
+A:{t:'Ausgeschriebene Masterarbeiten',s:'Konkrete Angebote 2026/2027',
+text:`## Modul A – Ausgeschriebene Masterarbeiten
+Schwerpunkt auf aktuell offenen, konkret ausgeschriebenen Masterarbeiten mit Start 2026 oder 2027. Ergänze Thesis-Programme nur, wenn weniger als die gewünschte Trefferzahl gefunden wird. Sortierung: Score, dann Entfernung zur Hochschule.`},
+B:{t:'Langfristige Planung',s:'Thesis-Programme für 2027/2028',
+text:`## Modul B – Langfristige Planung 2027/2028
+Schwerpunkt auf Unternehmen und Einrichtungen, die regelmäßig Masterarbeiten vergeben (Studierendenprogramme, Abschlussarbeitsseiten, wiederkehrende Ausschreibungen der letzten 12 Monate, Kooperationen mit Instituten der Hochschule). Nenne je Unternehmen: typische Themenfelder, üblicher Vorlauf, Ansprechstelle (z. B. Hochschulmarketing), Hinweise zu Vergütung oder Werkstudententätigkeit vorab. Empfiehl einen Zeitplan, wann angefragt werden sollte.`},
+C:{t:'Initiativanfragen',s:'Passende Betriebe ohne Anzeige',
+text:`## Modul C – Betriebe für Initiativanfragen
+Finde fachlich passende Unternehmen, Büros oder Einrichtungen im Suchgebiet mit Entwicklungs-, Konstruktions-, Versuchs- oder Planungsabteilung. Bevorzuge Betriebe, die Studierende beschäftigen (Werkstudierende, Praktika, Abschlussarbeiten in anderen Fächern) oder mit der Hochschule kooperieren. Gib je Betrieb an, warum er passt, welche Abteilung angefragt werden sollte und über welchen Weg (Karriereseite, Hochschulmarketing, allgemeine Kontaktadresse – kennzeichnen). Biete am Ende einen kurzen Entwurf für eine Initiativanfrage an.`},
+D:{t:'Themensuche',s:'Nach Schlagwort quer durch die Region',
+text:`## Modul D – Themenbezogene Suche
+Suche gezielt nach dem angegebenen Thema bzw. den Schlagworten (auch englische Begriffe und Synonyme). Ordne Treffer nach Themenclustern. Berücksichtige auch Institute und Lehrstühle der Hochschule, die zu diesem Thema mit Unternehmen zusammenarbeiten, und nenne die Industriepartner, sofern veröffentlicht.`},
+E:{t:'Kooperationen der Hochschule',s:'Institute mit Industriepartnern',
+text:`## Modul E – Kooperationen der Hochschule
+Recherchiere auf den Seiten der gewählten Hochschule Institute, Lehrstühle, An-Institute und Forschungsprojekte mit Industriepartnern in der gewählten Fachrichtung, die Masterarbeiten in Kooperation mit Unternehmen anbieten. Je Treffer: Institut/Lehrstuhl | Professor/in | Thema oder Forschungsfeld | Industriepartner (nur wenn veröffentlicht) | offene Abschlussarbeiten (Link) | Kontakt. So entstehen Arbeiten, bei denen Betreuung an der Hochschule und Unternehmen von Anfang an zusammenpassen.`}
+};
+
+const EXTRAS = [
+ ['verg','Nur vergütete Masterarbeiten','Nimm nur vergütete Masterarbeiten in die Hauptliste; unvergütete gesondert aufführen.'],
+ ['werk','Werkstudententätigkeit vorab ist willkommen','Weise auf Angebote hin, bei denen eine Werkstudententätigkeit vor der Masterarbeit möglich ist.'],
+ ['remote','Home-Office-Anteil wichtig','Nenne je Treffer den Home-Office-Anteil, soweit angegeben.'],
+ ['bahn','Ohne Auto erreichbar','Prüfe die Erreichbarkeit mit Bus und Bahn ab dem Hochschulstandort.'],
+ ['nur','Nur Originalquellen als bestätigt werten','Werte nur Angebote als bestätigt, die auf der Unternehmensseite selbst stehen.'],
+ ['kontakt','Anschreiben für die Top-3 mitliefern','Erstelle am Ende für die drei besten Treffer einen kurzen E-Mail-Entwurf.']
+];
+
+/* ---------- State ---------- */
+let state = {mod:'A', faecher:['M'], jahre:['2027']};
+try{ const s = JSON.parse(localStorage.getItem('maf-state')||'null'); if(s && MODULES[s.mod]) state = Object.assign(state,s);}catch(e){}
+const save = ()=>{ try{ localStorage.setItem('maf-state', JSON.stringify(state)); }catch(e){} };
+
+const modWrap = $('modules');
+Object.entries(MODULES).forEach(([k,m])=>{
+  const d = document.createElement('div'); d.className='mod';
+  d.innerHTML = `<input type="radio" name="mod" id="mod-${k}" value="${k}"><label for="mod-${k}"><span class="key">${k}</span><span class="t">${m.t}<span class="s">${m.s}</span></span></label>`;
+  modWrap.appendChild(d);
+});
+EXTRAS.forEach(([k,l])=>{
+  const lab = document.createElement('label');
+  lab.innerHTML = `<input type="checkbox" id="ex-${k}"> <span>${l}</span>`;
+  $('extras').appendChild(lab);
+});
+
+function chipGroup(wrapId, items, key){
+  const w = $(wrapId); w.innerHTML='';
+  items.forEach(([val,label])=>{
+    const c = document.createElement('button'); c.type='button'; c.className='chip'; c.textContent=label;
+    c.setAttribute('aria-pressed', state[key].includes(val)?'true':'false');
+    c.onclick = ()=>{ const a=state[key]; const i=a.indexOf(val); if(i>=0){ if(a.length>1) a.splice(i,1); } else a.push(val); chipGroup(wrapId,items,key); fillHs(); build(); save(); };
+    w.appendChild(c);
+  });
+}
+const FACH_ITEMS = Object.entries(FACH);
+const JAHR_ITEMS = [['2026','Start 2026'],['2027','Start 2027'],['2028','Start 2028']];
+
+function fillHs(){
+  const land = $('land').value, cur = state.hs || $('hs').value;
+  const list = HS.filter(h=>(!land||h.l===land) && state.faecher.some(f=>h.f.includes(f)));
+  const sel = $('hs'); sel.innerHTML='';
+  const o0 = document.createElement('option'); o0.value=''; o0.textContent = list.length ? 'Bitte wählen …' : 'Keine Hochschule in der Liste'; sel.appendChild(o0);
+  list.sort((a,b)=>a.n.localeCompare(b.n,'de')).forEach(h=>{ const o=document.createElement('option'); o.value=h.n; o.textContent=`${h.n} (${h.o})`; sel.appendChild(o); });
+  const oo = document.createElement('option'); oo.value='__other'; oo.textContent='Andere Hochschule …'; sel.appendChild(oo);
+  if(cur && [...sel.options].some(o=>o.value===cur)) sel.value = cur;
+  hsInfo();
+}
+function hsInfo(){
+  const v = $('hs').value; state.hs = v; save();
+  $('hsOtherWrap').hidden = v!=='__other';
+  const box = $('uniInfo'); const h = HS.find(x=>x.n===v);
+  if(!h){ box.innerHTML = v==='__other' ? 'Claude prüft das Studienangebot deiner Hochschule zu Beginn der Suche.' : 'Wähle deine Hochschule, damit Claude den Umkreis und passende Kooperationen berücksichtigen kann.'; return; }
+  box.innerHTML = `<b>${h.n}</b> · ${h.o} · ${LAND[h.l]} · ${h.t==='Uni'?'Universität':'Hochschule für angewandte Wissenschaften'}<br>` +
+    Object.entries(FACH).map(([k,l])=>`<span class="fl ${h.f.includes(k)?'on':''}" title="${l}">${l}</span>`).join('') +
+    `<div class="hint" style="margin-top:4px">Markierte Fächer: Masterangebot laut Liste (Stand Oktober 2026). Claude prüft das zu Beginn.</div>`;
+}
+$('land').addEventListener('change', ()=>{ state.hs=''; fillHs(); build(); });
+$('hs').addEventListener('change', ()=>{ hsInfo(); build(); });
+modWrap.addEventListener('change', e=>{ if(e.target.name==='mod'){ state.mod=e.target.value; build(); save(); }});
+$('form').addEventListener('submit', e=>e.preventDefault());
+$('form').addEventListener('input', build);
+$('form').addEventListener('change', build);
+$('projMode').addEventListener('change', build);
+
+function hsText(){
+  const v = $('hs').value; const h = HS.find(x=>x.n===v);
+  if(h) return {name:`${h.n}, ${h.o} (${LAND[h.l]})`, land:LAND[h.l]};
+  if(v==='__other') return {name: $('hsOther').value.trim() || 'bitte erfragen', land:''};
+  return {name:'nicht angegeben – bitte erfragen', land: $('land').value ? LAND[$('land').value] : ''};
+}
+function auftrag(){
+  const k = state.mod, m = MODULES[k], h = hsText();
+  const L = [];
+  L.push(`# Suchauftrag vom ${fmtDate(today)}`);
+  L.push(`Modul: ${k} – ${m.t}`);
+  L.push(`Fachrichtung: ${state.faecher.map(f=>FACH[f]).join('; ')}`);
+  const vt = $('vertiefung').value.trim(); if(vt) L.push(`Vertiefung / Schwerpunkt: ${vt}`);
+  L.push(`Hochschule: ${h.name}`);
+  let geb = $('gebiet').value;
+  if(geb==='ganzes Bundesland') geb = h.land ? `ganzes Bundesland (${h.land})` : 'ganzes Bundesland der Hochschule';
+  else if(geb!=='alle fünf Länder') geb = `Umkreis ${geb} um den Hochschulstandort`;
+  else geb = 'alle fünf Länder: Nordrhein-Westfalen, Rheinland-Pfalz, Hessen, Saarland, Niedersachsen';
+  L.push(`Suchgebiet: ${geb}`);
+  const w = $('wunsch').value.trim(); if(w) L.push(`Zusätzliche Wunschregion: ${w} (getrennt ausweisen)`);
+  L.push(`Start der Masterarbeit: ${state.jahre.slice().sort().join(', ')}${$('start').value.trim()?' – '+$('start').value.trim():''}`);
+  const th = $('thema').value.trim(); if(th) L.push(`Themenwünsche: ${th}`);
+  if($('art').value) L.push(`Bevorzugte Arbeitgeber: ${$('art').value}`);
+  if($('sprache').value) L.push(`Sprache der Arbeit: ${$('sprache').value}`);
+  L.push(`Gewünschte Trefferzahl: ${$('anzahl').value || '15'}${state.faecher.length>1?' je Fachrichtung':''}`);
+  L.push(`Ausgabe: ${$('ausgabe').value}`);
+  const ex = EXTRAS.filter(([key])=>$('ex-'+key).checked).map(([,,t])=>'- '+t);
+  if(ex.length){ L.push('Zusatzwünsche:'); L.push(...ex); }
+  const f = $('frei').value.trim(); if(f) L.push('Weitere Hinweise: '+f);
+  L.push('');
+  L.push('Prüfe zuerst kurz das Masterangebot der Hochschule und starte dann direkt mit der Recherche (Websuche). Halte dich an alle Regeln der Arbeitsanweisung.');
+  return L.join('\n');
+}
+function build(){
+  const txt = $('projMode').checked ? auftrag() : BASE + '\n\n' + MODULES[state.mod].text + '\n\n---\n\n' + auftrag();
+  $('out').textContent = txt;
+  $('count').textContent = txt.length.toLocaleString('de-DE') + ' Zeichen';
+}
+
+/* ---------- Kopieren ---------- */
+function copyText(text, el, toastEl){
+  const done = ()=>{ toastEl.textContent='Kopiert'; setTimeout(()=>toastEl.textContent='',2200); };
+  const fallback = ()=>{ const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toastEl.textContent='Text markiert – jetzt kopieren'; };
+  try{ navigator.clipboard.writeText(text).then(done, fallback); }catch(e){ fallback(); }
+}
+$('copyBtn').onclick = ()=>copyText($('out').textContent, $('out'), $('toast'));
+
+/* ---------- Projekt ---------- */
+const PROJ = BASE + '\n\n# Module\nWähle anhand des Auftrags das passende Modul.\n\n' + Object.values(MODULES).map(m=>m.text).join('\n\n');
+$('projOut').textContent = PROJ;
+$('projCount').textContent = PROJ.length.toLocaleString('de-DE') + ' Zeichen';
+$('copyProj').onclick = ()=>copyText(PROJ, $('projOut'), $('toastProj'));
+
+/* ---------- Hochschultabelle ---------- */
+function renderTable(){
+  const l = $('fLand').value, f = $('fFach').value;
+  const rows = HS.filter(h=>(!l||h.l===l)&&(!f||h.f.includes(f))).sort((a,b)=>a.l.localeCompare(b.l)||a.n.localeCompare(b.n,'de'));
+  $('hsTable').innerHTML = rows.map(h=>`<tr><td>${h.n}</td><td>${h.o}</td><td>${h.l}</td><td>${h.t}</td>${['M','E','F','R'].map(k=>`<td class="c">${h.f.includes(k)?'●':'–'}</td>`).join('')}</tr>`).join('');
+  $('hsCount').textContent = rows.length + ' Hochschulen';
+}
+$('fLand').addEventListener('change', renderTable); $('fFach').addEventListener('change', renderTable);
+
+/* ---------- Tabs ---------- */
+const tabs = [...document.querySelectorAll('nav.tabs button')];
+function showTab(id){
+  tabs.forEach(t=>{ const on = t.id===id; t.setAttribute('aria-selected', on); $(t.getAttribute('aria-controls')).hidden = !on; });
+  try{ localStorage.setItem('maf-tab', id);}catch(e){}
+}
+tabs.forEach(t=>t.addEventListener('click', ()=>showTab(t.id)));
+let startTab=null; try{ startTab = localStorage.getItem('maf-tab'); }catch(e){}
+if(startTab && $(startTab)) showTab(startTab);
+
+/* ---------- Anschreiben ---------- */
+const v = (id, ph)=> $(id).value.trim() || ph;
+function buildK(){
+  const name=v('kName','[Name]'), firma=v('kFirma','[Unternehmen]'), studi=v('kStudi','[Studiengang]'), hs=v('kHs','[Hochschule]');
+  const thema=v('kThema','[Themenidee]'), zeit=v('kZeit','[Zeitraum]'), kenn=v('kKenn','[Vorkenntnisse]');
+  const prof = $('kProf').value.trim(); const betr = $('kBetr').value;
+  $('mailFirma').textContent =
+`Betreff: Anfrage Masterarbeit – ${studi}, ${zeit}
+
+Sehr geehrte Damen und Herren,
+
+ich studiere ${studi} an der ${hs} und suche ein Unternehmen, in dem ich meine Masterarbeit praxisnah schreiben kann. Geplant ist der Zeitraum ${zeit}.
+
+Besonders interessiert mich das Thema „${thema}“. Gern passe ich die Fragestellung an ein aktuelles Projekt in Ihrem Haus an.
+
+Mitbringen kann ich unter anderem: ${kenn}.
+
+${betr==='geklärt' ? `Die Betreuung an der Hochschule ist ${prof?'mit '+prof+' ':''}bereits abgestimmt.` : `Die Betreuung an der Hochschule würde ich nach Ihrer Rückmeldung abstimmen${prof?', voraussichtlich mit '+prof:''}.`}
+
+Gibt es bei ${firma==='[Unternehmen]'?'Ihnen':firma} die Möglichkeit für eine Masterarbeit in diesem Bereich? Über eine kurze Rückmeldung oder den Kontakt zur zuständigen Fachabteilung freue ich mich. Meinen Lebenslauf und meine Notenübersicht sende ich gern zu.
+
+Mit freundlichen Grüßen
+${name}`;
+  $('mailProf').textContent =
+`Betreff: Betreuung einer Masterarbeit in Kooperation mit ${firma==='[Unternehmen]'?'einem Unternehmen':firma}
+
+Sehr geehrte${prof?' '+prof:'r Professor, sehr geehrte Professorin'},
+
+ich studiere ${studi} an der ${hs} und plane meine Masterarbeit ${zeit} in Kooperation mit ${firma==='[Unternehmen]'?'einem Unternehmen':firma}.
+
+Das vorläufige Thema lautet „${thema}“. Es passt aus meiner Sicht gut zu Ihrem Fachgebiet.
+
+Wären Sie bereit, die Arbeit als Erstprüfer/in zu betreuen? Gern stelle ich Ihnen die Fragestellung in einem kurzen Gespräch vor und stimme sie gemeinsam mit dem Unternehmen ab. Falls eine Geheimhaltungsvereinbarung nötig wird, kläre ich das vorab mit Ihnen.
+
+Mit freundlichen Grüßen
+${name}`;
+}
+$('kform').addEventListener('input', buildK);
+$('kform').addEventListener('change', buildK);
+$('kform').addEventListener('submit', e=>e.preventDefault());
+document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click', ()=>{ const el=$(b.dataset.copy); copyText(el.textContent, el, $('toastK')); }));
+
+/* ---------- Start ---------- */
+$('mod-'+state.mod).checked = true;
+chipGroup('faecher', FACH_ITEMS, 'faecher');
+chipGroup('jahre', JAHR_ITEMS, 'jahre');
+fillHs(); renderTable(); build(); buildK();
+})();
+</script>
+<script>
+(function(){
+  if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+  var bar=document.getElementById('installBar'), btn=document.getElementById('installBtn'), txt=document.getElementById('installText');
+  var standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  var dismissed=false; try{dismissed=localStorage.getItem('maf-install-x')==='1'}catch(e){}
+  var deferred=null;
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred=e; if(!standalone&&!dismissed){ bar.hidden=false; btn.hidden=false; } });
+  btn.addEventListener('click',function(){ if(!deferred) return; deferred.prompt(); deferred.userChoice.finally(function(){ deferred=null; bar.hidden=true; }); });
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(ios && !standalone && !dismissed){ txt.textContent='Als App installieren: in Safari auf „Teilen“ tippen, dann „Zum Home-Bildschirm“.'; bar.hidden=false; }
+  document.getElementById('installClose').addEventListener('click',function(){ bar.hidden=true; try{localStorage.setItem('maf-install-x','1')}catch(e){} });
+  var off=document.getElementById('offline'); function upd(){ off.hidden=navigator.onLine; }
+  addEventListener('online',upd); addEventListener('offline',upd); upd();
+})();
+</script>
+</body>
+</html>
