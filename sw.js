@@ -1,6 +1,6 @@
 // Offline-Cache für den Masterarbeitsfinder.
 // Bei Änderungen an der App die Versionsnummer erhöhen, damit alle Geräte die neue Fassung laden.
-const VERSION = 'masterarbeitsfinder-v1';
+const VERSION = 'masterarbeitsfinder-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 
